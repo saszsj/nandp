@@ -37,19 +37,32 @@ export function AuthProviderInner({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
+      console.log(
+        "[auth] state change",
+        firebaseUser ? { uid: firebaseUser.uid, email: firebaseUser.email } : null
+      );
       setUser(firebaseUser);
       if (!firebaseUser) {
         setProfile(null);
         setLoading(false);
         return;
       }
-      const snap = await getDoc(doc(db, "users", firebaseUser.uid));
-      if (snap.exists()) {
-        setProfile({ id: snap.id, ...(snap.data() as UserProfile) });
-      } else {
+      try {
+        const snap = await getDoc(doc(db, "users", firebaseUser.uid));
+        if (snap.exists()) {
+          const nextProfile = { id: snap.id, ...(snap.data() as UserProfile) };
+          console.log("[auth] profile loaded", nextProfile);
+          setProfile(nextProfile);
+        } else {
+          console.log("[auth] profile missing for uid", firebaseUser.uid);
+          setProfile(null);
+        }
+      } catch (error) {
+        console.error("Failed to load user profile.", error);
         setProfile(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
     return () => unsub();
   }, []);

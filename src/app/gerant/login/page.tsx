@@ -14,10 +14,32 @@ export default function GerantLoginPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user && profile?.role === "gerant") {
+    if (user && profile && ["gerant", "admin"].includes(profile.role)) {
       router.replace("/gerant/dashboard");
     }
   }, [user, profile, router]);
+
+  const getAuthErrorMessage = (err: unknown) => {
+    const fallback = mode === "signup" ? "Sign up failed." : "Sign in failed.";
+    if (!err || typeof err !== "object") {
+      return fallback;
+    }
+    const code = "code" in err ? String(err.code) : "";
+    switch (code) {
+      case "auth/invalid-credential":
+      case "auth/wrong-password":
+      case "auth/user-not-found":
+        return "Invalid email or password.";
+      case "auth/email-already-in-use":
+        return "Email already in use.";
+      case "auth/weak-password":
+        return "Password is too weak.";
+      case "auth/invalid-email":
+        return "Invalid email address.";
+      default:
+        return fallback;
+    }
+  };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -29,7 +51,7 @@ export default function GerantLoginPage() {
         await signIn(email, password);
       }
     } catch (err) {
-      setError(mode === "signup" ? "Sign up failed." : "Sign in failed.");
+      setError(getAuthErrorMessage(err));
     }
   };
 
@@ -83,7 +105,7 @@ export default function GerantLoginPage() {
             ? "Already have an account? Sign in"
             : "No account? Create one"}
         </button>
-        {error ? <p className="muted">{error}</p> : null}
+        {error ? <div className="alert danger">{error}</div> : null}
       </form>
     </main>
   );

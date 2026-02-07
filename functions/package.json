@@ -7,7 +7,8 @@
   "main": "lib/index.js",
   "scripts": {
     "build": "tsc",
-    "deploy": "firebase deploy --only functions"
+    "deploy": "firebase deploy --only functions",
+    "set-admin": "node scripts/set-admin.mjs"
   },
   "dependencies": {
     "firebase-admin": "^12.6.0",

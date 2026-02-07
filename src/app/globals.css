@@ -133,6 +133,20 @@ a {
   background: #fef2f2;
 }
 
+.alert {
+  border-radius: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  background: white;
+  font-size: 14px;
+}
+
+.alert.danger {
+  color: var(--danger);
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
 .muted {
   color: var(--muted);
 }

@@ -22,6 +22,7 @@ export default function AdminLoginPage() {
     setError(null);
     try {
       await signIn(email, password);
+      router.replace("/admin/dashboard");
     } catch (err) {
       setError("Connexion impossible.");
     }
