@@ -21,6 +21,7 @@ export default function AdminBoutiquesPage() {
   const [boutiques, setBoutiques] = useState<Boutique[]>([]);
   const [form, setForm] = useState({ nom: "", ville: "", actif: true });
   const [status, setStatus] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -75,6 +76,19 @@ export default function AdminBoutiquesPage() {
       setEditingId(null);
     }
     setStatus("Boutique supprimee.");
+  };
+
+  const handleCopyLink = async (id: string) => {
+    const origin = window.location.origin;
+    const link = `${origin}/kiosk/${id}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId((prev) => (prev === id ? null : prev)), 2000);
+    } catch (error) {
+      console.error("Copy failed.", error);
+      setStatus(link);
+    }
   };
 
   return (
@@ -144,6 +158,22 @@ export default function AdminBoutiquesPage() {
                   <span className={`badge ${b.actif ? "success" : "danger"}`}>
                     {b.actif ? "Active" : "Inactive"}
                   </span>
+                  <input
+                    className="input"
+                    style={{ width: 260 }}
+                    readOnly
+                    value={`${typeof window !== "undefined" ? window.location.origin : ""}/kiosk/${b.id}`}
+                  />
+                  <button
+                    className="btn secondary"
+                    type="button"
+                    onClick={() => handleCopyLink(b.id)}
+                  >
+                    Copier lien tablette
+                  </button>
+                  {copiedId === b.id ? (
+                    <span className="badge success">Copie</span>
+                  ) : null}
                   <button
                     className="btn ghost"
                     type="button"
