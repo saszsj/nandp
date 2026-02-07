@@ -16,6 +16,17 @@ export default function KioskPage({ params }: Props) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const manifestHref = `/kiosk/${boutiqueId}/manifest.webmanifest`;
+    let link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
+    if (!link) {
+      link = document.createElement("link");
+      link.rel = "manifest";
+      document.head.appendChild(link);
+    }
+    link.href = manifestHref;
+  }, [boutiqueId]);
+
+  useEffect(() => {
     const q = query(
       collection(db, "produits"),
       where("boutiqueIds", "array-contains", boutiqueId)
