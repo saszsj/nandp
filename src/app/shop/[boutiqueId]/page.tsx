@@ -1,9 +1,9 @@
 "use client";
 
 import { use, useEffect, useMemo, useState } from "react";
-import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { collection, doc, getDoc, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import type { Produit } from "@/lib/types";
+import type { Boutique, Produit } from "@/lib/types";
 
 type Props = {
   params: Promise<{ boutiqueId: string }>;
@@ -12,6 +12,7 @@ type Props = {
 export default function ShopPage({ params }: Props) {
   const { boutiqueId } = use(params);
   const [produits, setProduits] = useState<Produit[]>([]);
+  const [boutique, setBoutique] = useState<Boutique | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,6 +32,18 @@ export default function ShopPage({ params }: Props) {
     return () => unsub();
   }, [boutiqueId]);
 
+  useEffect(() => {
+    const loadBoutique = async () => {
+      const snap = await getDoc(doc(db, "boutiques", boutiqueId));
+      if (snap.exists()) {
+        setBoutique({ ...(snap.data() as Boutique), id: snap.id });
+      } else {
+        setBoutique(null);
+      }
+    };
+    loadBoutique();
+  }, [boutiqueId]);
+
   const cards = useMemo(() => produits, [produits]);
 
   if (loading) {
@@ -44,6 +57,21 @@ export default function ShopPage({ params }: Props) {
   return (
     <main className="container stack">
       <h1>Articles du magasin</h1>
+      {boutique ? (
+        <div className="card stack">
+          <h2>{boutique.nom}</h2>
+          <div className="muted">{boutique.ville}</div>
+          {boutique.adresse ? (
+            <div className="muted">{boutique.adresse}</div>
+          ) : null}
+          {boutique.telephone ? (
+            <div className="muted">{boutique.telephone}</div>
+          ) : null}
+          <span className={`badge ${boutique.actif ? "success" : "danger"}`}>
+            {boutique.actif ? "Open" : "Closed"}
+          </span>
+        </div>
+      ) : null}
       <div className="stack">
         {cards.map((p) => (
           <div key={p.id} className="card row space-between">

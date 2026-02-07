@@ -10,6 +10,7 @@ import {
   orderBy,
   query,
   serverTimestamp,
+  updateDoc,
   where,
 } from "firebase/firestore";
 import RoleGuard from "@/components/RoleGuard";
@@ -42,6 +43,17 @@ export default function GerantDashboardPage() {
   const [aiVariants, setAiVariants] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [reservationStatus, setReservationStatus] = useState<string | null>(null);
+  const [reservationFormOpen, setReservationFormOpen] = useState(false);
+  const [reservationForm, setReservationForm] = useState({
+    produitId: "",
+    nom: "",
+    email: "",
+    telephone: "",
+    taille: "",
+    quantite: 1,
+  });
   const [form, setForm] = useState({
     nom: "",
     description: "",
@@ -107,6 +119,10 @@ export default function GerantDashboardPage() {
       nouveaute: mine.filter((p) => p.categorie === "nouveaute").length,
     };
   }, [produits, user?.uid]);
+
+  const productMap = useMemo(() => {
+    return new Map(produits.map((p) => [p.id, p]));
+  }, [produits]);
 
   const limitReached =
     (form.categorie === "promo" && counts.promo >= 3) ||
@@ -206,6 +222,50 @@ export default function GerantDashboardPage() {
     ]);
   };
 
+  const updateReservation = async (id: string, data: Partial<Reservation>) => {
+    await updateDoc(doc(db, "reservations", id), data);
+  };
+
+  const handleMarkDelivered = async (reservation: Reservation) => {
+    const confirmed = window.confirm("Confirmer la livraison et archiver ?");
+    if (!confirmed) return;
+    await updateReservation(reservation.id, {
+      statut: "livree",
+      archived: true,
+    });
+  };
+
+  const handleReserveForClient = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!profile?.boutiqueId || !reservationForm.produitId) {
+      setReservationStatus("Produit requis.");
+      return;
+    }
+    setReservationStatus(null);
+    await addDoc(collection(db, "reservations"), {
+      produitId: reservationForm.produitId,
+      boutiqueId: profile.boutiqueId,
+      nom: reservationForm.nom,
+      email: reservationForm.email,
+      telephone: reservationForm.telephone || "",
+      taille: reservationForm.taille,
+      quantite: Number(reservationForm.quantite),
+      statut: "en_attente",
+      notifyEmail: true,
+      notifyPush: false,
+      createdAt: serverTimestamp(),
+    });
+    setReservationStatus("Reservation creee.");
+    setReservationForm({
+      produitId: "",
+      nom: "",
+      email: "",
+      telephone: "",
+      taille: "",
+      quantite: 1,
+    });
+  };
+
   return (
     <RoleGuard allow={["gerant", "admin"]} redirectTo="/gerant/login">
       <main className="container stack">
@@ -215,6 +275,10 @@ export default function GerantDashboardPage() {
           <p className="muted">
             Boutique: {boutique ? `${boutique.nom} - ${boutique.ville}` : "..."}
           </p>
+          {boutique?.adresse ? <p className="muted">{boutique.adresse}</p> : null}
+          {boutique?.telephone ? (
+            <p className="muted">{boutique.telephone}</p>
+          ) : null}
           <div className="row">
             <span className="badge">Promos: {counts.promo}/3</span>
             <span className="badge">Nouveautes: {counts.nouveaute}/3</span>
@@ -222,8 +286,18 @@ export default function GerantDashboardPage() {
         </div>
 
         <div className="card stack">
-          <h2>Ajouter un produit</h2>
-          <form className="stack" onSubmit={handleCreate}>
+          <div className="row space-between">
+            <h2>Ajouter un produit</h2>
+            <button
+              className="btn"
+              type="button"
+              onClick={() => setFormOpen((prev) => !prev)}
+            >
+              {formOpen ? "Fermer" : "Afficher le formulaire"}
+            </button>
+          </div>
+          {formOpen ? (
+            <form className="stack" onSubmit={handleCreate}>
             <div className="stack">
               <label className="label">Nom</label>
               <input
@@ -393,31 +467,332 @@ export default function GerantDashboardPage() {
                 />
               </div>
             </div>
-            <button className="btn" type="submit" disabled={limitReached}>
-              Ajouter
-            </button>
-            {limitReached ? (
-              <p className="muted">
-                Limite atteinte: 3 promos ou 3 nouveautes max.
-              </p>
+              <button className="btn" type="submit" disabled={limitReached}>
+                Ajouter
+              </button>
+              {limitReached ? (
+                <p className="muted">
+                  Limite atteinte: 3 promos ou 3 nouveautes max.
+                </p>
+              ) : null}
+              {status ? <p className="muted">{status}</p> : null}
+            </form>
+          ) : null}
+        </div>
+
+        <div className="card stack">
+          <h2>Produits</h2>
+          <div className="stack">
+            {produits.map((p) => (
+              <div
+                key={p.id}
+                className="card"
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "120px 1fr auto",
+                  gap: 16,
+                  alignItems: "center",
+                }}
+              >
+                <div
+                  style={{
+                    width: 120,
+                    height: 120,
+                    borderRadius: 12,
+                    background: "#f3f4f6",
+                    overflow: "hidden",
+                    display: "grid",
+                    placeItems: "center",
+                  }}
+                >
+                  {p.photos?.[0] ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={p.photos[0]}
+                      alt={p.nom}
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    />
+                  ) : (
+                    <span className="muted">No photo</span>
+                  )}
+                </div>
+                <div className="stack" style={{ gap: 6 }}>
+                  <div style={{ fontWeight: 600 }}>{p.nom}</div>
+                  <div className="muted">{p.categorie}</div>
+                </div>
+                <span className="badge">{p.prix.toFixed(2)} €</span>
+              </div>
+            ))}
+            {!produits.length ? (
+              <p className="muted">Aucun produit pour le moment.</p>
             ) : null}
-            {status ? <p className="muted">{status}</p> : null}
-          </form>
+          </div>
+        </div>
+
+        <div className="card stack">
+          <div className="row space-between">
+            <h2>Reserver pour un client</h2>
+            <button
+              className="btn"
+              type="button"
+              onClick={() => setReservationFormOpen((prev) => !prev)}
+            >
+              {reservationFormOpen ? "Fermer" : "Afficher le formulaire"}
+            </button>
+          </div>
+          {reservationFormOpen ? (
+            <form className="stack" onSubmit={handleReserveForClient}>
+              <div className="stack">
+                <label className="label">Produit</label>
+                <div className="stack">
+                  {produits.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      className="card"
+                      onClick={() =>
+                        setReservationForm((prev) => ({
+                          ...prev,
+                          produitId: p.id,
+                        }))
+                      }
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "64px 1fr auto",
+                        gap: 12,
+                        alignItems: "center",
+                        textAlign: "left",
+                        border:
+                          reservationForm.produitId === p.id
+                            ? "2px solid #0a0a0a"
+                            : undefined,
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 64,
+                          height: 64,
+                          borderRadius: 10,
+                          background: "#f3f4f6",
+                          overflow: "hidden",
+                          display: "grid",
+                          placeItems: "center",
+                        }}
+                      >
+                        {p.photos?.[0] ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={p.photos[0]}
+                            alt={p.nom}
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                            }}
+                          />
+                        ) : (
+                          <span className="muted">No photo</span>
+                        )}
+                      </div>
+                      <div className="stack" style={{ gap: 4 }}>
+                        <div style={{ fontWeight: 600 }}>{p.nom}</div>
+                        <div className="muted">{p.categorie}</div>
+                      </div>
+                      <span className="badge">{p.prix.toFixed(2)} €</span>
+                    </button>
+                  ))}
+                  {!produits.length ? (
+                    <p className="muted">Aucun produit disponible.</p>
+                  ) : null}
+                </div>
+              </div>
+            <div className="stack">
+              <label className="label">Nom client</label>
+              <input
+                className="input"
+                value={reservationForm.nom}
+                onChange={(e) =>
+                  setReservationForm((prev) => ({
+                    ...prev,
+                    nom: e.target.value,
+                  }))
+                }
+                required
+              />
+            </div>
+            <div className="stack">
+              <label className="label">Email client</label>
+              <input
+                className="input"
+                type="email"
+                value={reservationForm.email}
+                onChange={(e) =>
+                  setReservationForm((prev) => ({
+                    ...prev,
+                    email: e.target.value,
+                  }))
+                }
+                required
+              />
+            </div>
+            <div className="stack">
+              <label className="label">Telephone</label>
+              <input
+                className="input"
+                value={reservationForm.telephone}
+                onChange={(e) =>
+                  setReservationForm((prev) => ({
+                    ...prev,
+                    telephone: e.target.value,
+                  }))
+                }
+              />
+            </div>
+            <div className="row">
+              <div className="stack" style={{ flex: 1 }}>
+                <label className="label">Taille</label>
+                <input
+                  className="input"
+                  value={reservationForm.taille}
+                  onChange={(e) =>
+                    setReservationForm((prev) => ({
+                      ...prev,
+                      taille: e.target.value,
+                    }))
+                  }
+                  required
+                />
+              </div>
+              <div className="stack" style={{ flex: 1 }}>
+                <label className="label">Quantite</label>
+                <input
+                  className="input"
+                  type="number"
+                  min={1}
+                  value={reservationForm.quantite}
+                  onChange={(e) =>
+                    setReservationForm((prev) => ({
+                      ...prev,
+                      quantite: Number(e.target.value),
+                    }))
+                  }
+                  required
+                />
+              </div>
+            </div>
+            <button className="btn" type="submit">
+              Reserver
+            </button>
+            {reservationStatus ? (
+              <p className="muted">{reservationStatus}</p>
+            ) : null}
+            </form>
+          ) : null}
         </div>
 
         <div className="card stack">
           <h2>Reservations</h2>
           <div className="stack">
-            {reservations.map((r) => (
-              <div key={r.id} className="row space-between">
-                <div>
-                  <div>{r.nom}</div>
-                  <div className="muted">{r.email}</div>
+            {reservations.filter((r) => !r.archived).map((r) => (
+              <div key={r.id} className="card stack">
+                <div className="row space-between">
+                  <div>
+                    <div>{r.nom}</div>
+                    <div className="muted">{r.email}</div>
+                  </div>
+                  <span
+                    className={`badge ${
+                      r.statut === "validee"
+                        ? "success"
+                        : r.statut === "refusee"
+                        ? "danger"
+                        : r.statut === "en_livraison"
+                        ? "warning"
+                        : r.statut === "livree"
+                        ? "success"
+                        : "warning"
+                    }`}
+                  >
+                    {r.statut}
+                  </span>
                 </div>
-                <span className="badge">{r.statut}</span>
+                <div className="row">
+                  <span className="badge">Taille: {r.taille}</span>
+                  <span className="badge">Qty: {r.quantite}</span>
+                  {r.tracking ? (
+                    <span className="badge">Tracking: {r.tracking}</span>
+                  ) : null}
+                </div>
+                {productMap.get(r.produitId) ? (
+                  <div className="row" style={{ gap: 12 }}>
+                    <div
+                      style={{
+                        width: 64,
+                        height: 64,
+                        borderRadius: 10,
+                        background: "#f3f4f6",
+                        overflow: "hidden",
+                        display: "grid",
+                        placeItems: "center",
+                      }}
+                    >
+                      {productMap.get(r.produitId)?.photos?.[0] ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={productMap.get(r.produitId)?.photos?.[0]}
+                          alt={productMap.get(r.produitId)?.nom || "Produit"}
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                          }}
+                        />
+                      ) : (
+                        <span className="muted">No photo</span>
+                      )}
+                    </div>
+                    <div className="stack" style={{ gap: 4 }}>
+                      <div style={{ fontWeight: 600 }}>
+                        {productMap.get(r.produitId)?.nom}
+                      </div>
+                      <div className="muted">
+                        {productMap.get(r.produitId)?.categorie}
+                      </div>
+                    </div>
+                    <span className="badge">
+                      {productMap.get(r.produitId)?.prix?.toFixed(2)} €
+                    </span>
+                  </div>
+                ) : null}
+                <div className="row">
+                  <button
+                    className={`btn success ${
+                      r.statut === "validee" ? "active" : ""
+                    }`}
+                    onClick={() => updateReservation(r.id, { statut: "validee" })}
+                  >
+                    Valider
+                  </button>
+                  <button
+                    className={`btn danger ${
+                      r.statut === "refusee" ? "active" : ""
+                    }`}
+                    onClick={() => updateReservation(r.id, { statut: "refusee" })}
+                  >
+                    Refuser
+                  </button>
+                  <button
+                    className={`btn warning ${
+                      r.statut === "livree" ? "active" : ""
+                    }`}
+                    onClick={() => handleMarkDelivered(r)}
+                  >
+                    Livre
+                  </button>
+                </div>
               </div>
-            ))}
-            {!reservations.length ? (
+              ))}
+            {!reservations.filter((r) => !r.archived).length ? (
               <p className="muted">Aucune reservation pour le moment.</p>
             ) : null}
           </div>

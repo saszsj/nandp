@@ -4,6 +4,8 @@ export type Boutique = {
   id: string;
   nom: string;
   ville: string;
+  adresse?: string;
+  telephone?: string;
   actif: boolean;
   createdAt?: number;
 };
@@ -33,7 +35,12 @@ export type Produit = {
   };
 };
 
-export type ReservationStatus = "en_attente" | "validee" | "refusee";
+export type ReservationStatus =
+  | "en_attente"
+  | "validee"
+  | "refusee"
+  | "en_livraison"
+  | "livree";
 
 export type Reservation = {
   id: string;
@@ -44,7 +51,8 @@ export type Reservation = {
   telephone?: string;
   taille: string;
   quantite: number;
-  acompte: number;
+  tracking?: string;
+  archived?: boolean;
   statut: ReservationStatus;
   notifyEmail: boolean;
   notifyPush: boolean;

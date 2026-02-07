@@ -1,25 +1,47 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userProfile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return signedIn() && userProfile().role == "admin";
+    }
+
+    function isGerant() {
+      return signedIn() && userProfile().role == "gerant";
+    }
+
+    function gerantBoutiqueId() {
+      return userProfile().boutiqueId;
+    }
+
     match /boutiques/{id} {
       allow read: if true;
-      allow create, update, delete: if request.auth != null;
+      allow create, update, delete: if isAdmin();
     }
 
     match /produits/{id} {
       allow read: if true;
-      allow create, update, delete: if request.auth != null;
+      allow create, update, delete: if isAdmin() || isGerant();
     }
 
     match /reservations/{id} {
-      allow read: if request.auth != null;
+      allow read: if isAdmin()
+        || (isGerant() && resource.data.boutiqueId == gerantBoutiqueId());
       allow create: if true;
-      allow update, delete: if request.auth != null;
+      allow update, delete: if isAdmin()
+        || (isGerant() && resource.data.boutiqueId == gerantBoutiqueId());
     }
 
     match /users/{id} {
-      allow read: if request.auth != null && request.auth.uid == id;
-      allow write: if request.auth != null && request.auth.uid == id;
+      allow read: if signedIn() && request.auth.uid == id;
+      allow write: if signedIn() && request.auth.uid == id;
     }
   }
 }

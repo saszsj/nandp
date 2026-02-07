@@ -15,14 +15,27 @@ import {
 import RoleGuard from "@/components/RoleGuard";
 import AdminNav from "@/components/AdminNav";
 import { db } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
 import type { Boutique } from "@/lib/types";
 
 export default function AdminBoutiquesPage() {
   const [boutiques, setBoutiques] = useState<Boutique[]>([]);
-  const [form, setForm] = useState({ nom: "", ville: "", actif: true });
+  const [form, setForm] = useState({
+    nom: "",
+    ville: "",
+    adresse: "",
+    telephone: "",
+    actif: true,
+  });
   const [status, setStatus] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [managerTargetId, setManagerTargetId] = useState<string | null>(null);
+  const [managerEmail, setManagerEmail] = useState("");
+  const [managerPassword, setManagerPassword] = useState("");
+  const [managerStatus, setManagerStatus] = useState<string | null>(null);
+  const [managerLoading, setManagerLoading] = useState(false);
+  const [origin, setOrigin] = useState("");
 
   useEffect(() => {
     const q = query(collection(db, "boutiques"), orderBy("nom"));
@@ -37,12 +50,18 @@ export default function AdminBoutiquesPage() {
     return () => unsub();
   }, []);
 
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
+
   const handleCreate = async (event: React.FormEvent) => {
     event.preventDefault();
     setStatus(null);
     const payload = {
       nom: form.nom,
       ville: form.ville,
+      adresse: form.adresse || "",
+      telephone: form.telephone || "",
       actif: form.actif,
       ...(editingId ? {} : { createdAt: serverTimestamp() }),
     };
@@ -54,7 +73,7 @@ export default function AdminBoutiquesPage() {
       await addDoc(collection(db, "boutiques"), payload);
       setStatus("Boutique ajoutee.");
     }
-    setForm({ nom: "", ville: "", actif: true });
+    setForm({ nom: "", ville: "", adresse: "", telephone: "", actif: true });
     setEditingId(null);
   };
 
@@ -63,6 +82,8 @@ export default function AdminBoutiquesPage() {
     setForm({
       nom: boutique.nom,
       ville: boutique.ville,
+      adresse: boutique.adresse || "",
+      telephone: boutique.telephone || "",
       actif: boutique.actif,
     });
     setStatus(null);
@@ -72,7 +93,7 @@ export default function AdminBoutiquesPage() {
     setStatus(null);
     await deleteDoc(doc(db, "boutiques", id));
     if (editingId === id) {
-      setForm({ nom: "", ville: "", actif: true });
+      setForm({ nom: "", ville: "", adresse: "", telephone: "", actif: true });
       setEditingId(null);
     }
     setStatus("Boutique supprimee.");
@@ -88,6 +109,51 @@ export default function AdminBoutiquesPage() {
     } catch (error) {
       console.error("Copy failed.", error);
       setStatus(link);
+    }
+  };
+
+  const handleSetManager = async (boutique: Boutique) => {
+    setManagerStatus(null);
+    if (!managerEmail || !managerPassword) {
+      setManagerStatus("Email et mot de passe requis.");
+      return;
+    }
+    if (managerPassword.length < 6) {
+      setManagerStatus("Mot de passe trop court (min 6).");
+      return;
+    }
+    const token = await auth.currentUser?.getIdToken();
+    if (!token) {
+      setManagerStatus("Session admin invalide.");
+      return;
+    }
+    setManagerLoading(true);
+    try {
+      const response = await fetch("/api/admin/gerant", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          boutiqueId: boutique.id,
+          email: managerEmail,
+          password: managerPassword,
+          displayName: boutique.nom,
+        }),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || "Creation du gerant echouee.");
+      }
+      setManagerStatus("Gerant mis a jour.");
+      setManagerPassword("");
+    } catch (error) {
+      setManagerStatus(
+        error instanceof Error ? error.message : "Creation du gerant echouee."
+      );
+    } finally {
+      setManagerLoading(false);
     }
   };
 
@@ -116,6 +182,24 @@ export default function AdminBoutiquesPage() {
                 required
               />
             </div>
+            <div className="stack">
+              <label className="label">Adresse</label>
+              <input
+                className="input"
+                value={form.adresse}
+                onChange={(e) => setForm({ ...form, adresse: e.target.value })}
+              />
+            </div>
+            <div className="stack">
+              <label className="label">Telephone</label>
+              <input
+                className="input"
+                value={form.telephone}
+                onChange={(e) =>
+                  setForm({ ...form, telephone: e.target.value })
+                }
+              />
+            </div>
             <label className="row">
               <input
                 type="checkbox"
@@ -133,7 +217,13 @@ export default function AdminBoutiquesPage() {
                   className="btn ghost"
                   type="button"
                   onClick={() => {
-                    setForm({ nom: "", ville: "", actif: true });
+                    setForm({
+                      nom: "",
+                      ville: "",
+                      adresse: "",
+                      telephone: "",
+                      actif: true,
+                    });
                     setEditingId(null);
                   }}
                 >
@@ -153,6 +243,8 @@ export default function AdminBoutiquesPage() {
                 <div>
                   <div>{b.nom}</div>
                   <div className="muted">{b.ville}</div>
+                  {b.adresse ? <div className="muted">{b.adresse}</div> : null}
+                  {b.telephone ? <div className="muted">{b.telephone}</div> : null}
                 </div>
                 <div className="row">
                   <span className={`badge ${b.actif ? "success" : "danger"}`}>
@@ -162,7 +254,7 @@ export default function AdminBoutiquesPage() {
                     className="input"
                     style={{ width: 260 }}
                     readOnly
-                    value={`${typeof window !== "undefined" ? window.location.origin : ""}/kiosk/${b.id}`}
+                    value={`${origin}/kiosk/${b.id}`}
                   />
                   <button
                     className="btn secondary"
@@ -174,6 +266,18 @@ export default function AdminBoutiquesPage() {
                   {copiedId === b.id ? (
                     <span className="badge success">Copie</span>
                   ) : null}
+                  <button
+                    className="btn secondary"
+                    type="button"
+                    onClick={() => {
+                      setManagerTargetId(b.id);
+                      setManagerEmail("");
+                      setManagerPassword("");
+                      setManagerStatus(null);
+                    }}
+                  >
+                    Gerant login
+                  </button>
                   <button
                     className="btn ghost"
                     type="button"
@@ -195,6 +299,61 @@ export default function AdminBoutiquesPage() {
               <p className="muted">Aucune boutique pour le moment.</p>
             ) : null}
           </div>
+          {managerTargetId ? (
+            <div className="card stack">
+              <h3>
+                Gerant pour{" "}
+                {boutiques.find((b) => b.id === managerTargetId)?.nom || "boutique"}
+              </h3>
+              <div className="stack">
+                <label className="label">Email</label>
+                <input
+                  className="input"
+                  type="email"
+                  value={managerEmail}
+                  onChange={(e) => setManagerEmail(e.target.value)}
+                />
+              </div>
+              <div className="stack">
+                <label className="label">Mot de passe</label>
+                <input
+                  className="input"
+                  type="password"
+                  value={managerPassword}
+                  onChange={(e) => setManagerPassword(e.target.value)}
+                />
+              </div>
+              <div className="row">
+                <button
+                  className="btn"
+                  type="button"
+                  onClick={() =>
+                    {
+                      const target = boutiques.find(
+                        (b) => b.id === managerTargetId
+                      );
+                      if (!target) {
+                        setManagerStatus("Boutique introuvable.");
+                        return;
+                      }
+                      handleSetManager(target);
+                    }
+                  }
+                  disabled={managerLoading}
+                >
+                  {managerLoading ? "En cours..." : "Enregistrer"}
+                </button>
+                <button
+                  className="btn ghost"
+                  type="button"
+                  onClick={() => setManagerTargetId(null)}
+                >
+                  Fermer
+                </button>
+              </div>
+              {managerStatus ? <p className="muted">{managerStatus}</p> : null}
+            </div>
+          ) : null}
         </div>
       </main>
     </RoleGuard>

@@ -89,6 +89,28 @@ a {
   border: 1px solid transparent;
 }
 
+.btn.success {
+  background: var(--success);
+  color: white;
+  border: 1px solid #166534;
+}
+
+.btn.danger {
+  background: var(--danger);
+  color: white;
+  border: 1px solid #7f1d1d;
+}
+
+.btn.warning {
+  background: var(--warning);
+  color: white;
+  border: 1px solid #92400e;
+}
+
+.btn.active {
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.25);
+}
+
 .input,
 .select,
 .textarea {
