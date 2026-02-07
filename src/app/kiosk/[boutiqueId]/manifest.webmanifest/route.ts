@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { use } from "react";
 
 type Context = {
   params: Promise<{ boutiqueId: string }>;
 };
 
 export async function GET(_: NextRequest, context: Context) {
-  const { boutiqueId } = use(context.params);
+  const { boutiqueId } = await context.params;
   const manifest = {
     name: "Nouveautes & Promos",
     short_name: "N&P",
