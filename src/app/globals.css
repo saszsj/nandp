@@ -277,6 +277,39 @@ a {
   color: #f8fafc;
 }
 
-.kiosk-footer {
-  text-align: center;
+.kiosk-qr-card {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(248, 250, 252, 0.85);
+  background: rgba(8, 12, 20, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 10px 12px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+.kiosk-qr {
+  width: 96px;
+  height: 96px;
+  border-radius: 12px;
+  background: white;
+  padding: 6px;
+}
+
+.kiosk-qr.placeholder {
+  width: 96px;
+  height: 96px;
+  border-radius: 12px;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  display: grid;
+  place-items: center;
+}
+
+.kiosk-qr-text {
+  font-size: 13px;
+  max-width: 160px;
 }

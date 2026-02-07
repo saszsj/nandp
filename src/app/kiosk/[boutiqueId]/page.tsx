@@ -14,6 +14,7 @@ export default function KioskPage({ params }: Props) {
   const { boutiqueId } = use(params);
   const [produits, setProduits] = useState<Produit[]>([]);
   const [loading, setLoading] = useState(true);
+  const [shopUrl, setShopUrl] = useState("");
 
   useEffect(() => {
     const manifestHref = `/kiosk/${boutiqueId}/manifest.webmanifest`;
@@ -24,6 +25,10 @@ export default function KioskPage({ params }: Props) {
       document.head.appendChild(link);
     }
     link.href = manifestHref;
+  }, [boutiqueId]);
+
+  useEffect(() => {
+    setShopUrl(`${window.location.origin}/shop/${boutiqueId}`);
   }, [boutiqueId]);
 
   useEffect(() => {
@@ -47,7 +52,7 @@ export default function KioskPage({ params }: Props) {
       {loading ? (
         <div className="kiosk-card">Chargement...</div>
       ) : (
-        <KioskCarousel produits={produits} />
+        <KioskCarousel produits={produits} shopUrl={shopUrl} />
       )}
       <div className="kiosk-banner">
         Rejoignez N&P pour booster vos ventes. Demandez une demo.

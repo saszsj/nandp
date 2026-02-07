@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import QRCode from "qrcode";
 import type { Produit } from "@/lib/types";
 
 type Props = {
   produits: Produit[];
+  shopUrl: string;
 };
 
 function buildStatusText(produit: Produit) {
@@ -16,9 +18,10 @@ function buildStatusText(produit: Produit) {
   return `Stock: ${produit.stockTotal}`;
 }
 
-export default function KioskCarousel({ produits }: Props) {
+export default function KioskCarousel({ produits, shopUrl }: Props) {
   const [productIndex, setProductIndex] = useState(0);
   const [photoIndex, setPhotoIndex] = useState(0);
+  const [qrCode, setQrCode] = useState<string | null>(null);
   const active = useMemo(
     () => produits[productIndex],
     [produits, productIndex]
@@ -30,6 +33,24 @@ export default function KioskCarousel({ produits }: Props) {
     setProductIndex(0);
     setPhotoIndex(0);
   }, [produits]);
+
+  useEffect(() => {
+    if (!shopUrl) {
+      setQrCode(null);
+      return;
+    }
+    let alive = true;
+    QRCode.toDataURL(shopUrl, { margin: 1, width: 160 })
+      .then((url) => {
+        if (alive) setQrCode(url);
+      })
+      .catch(() => {
+        if (alive) setQrCode(null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [shopUrl]);
 
   useEffect(() => {
     if (!produits.length) return;
@@ -92,10 +113,18 @@ export default function KioskCarousel({ produits }: Props) {
             ))}
           </div>
         ) : null}
+        <div className="kiosk-qr-card">
+          {qrCode ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img className="kiosk-qr" src={qrCode} alt="QR code boutique" />
+          ) : (
+            <div className="kiosk-qr placeholder">QR</div>
+          )}
+          <div className="kiosk-qr-text">
+            Scannez pour voir les articles et reserver.
+          </div>
+        </div>
       </div>
-      <p className="muted kiosk-footer">
-        QR code sur l'etiquette pour reserver.
-      </p>
     </div>
   );
 }
