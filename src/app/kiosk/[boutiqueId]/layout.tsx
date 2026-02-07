@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 
 type Props = {
   children: React.ReactNode;
-  params: { boutiqueId: string };
+  params: Promise<{ boutiqueId: string }>;
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { boutiqueId } = await params;
   return {
-    manifest: `/kiosk/${params.boutiqueId}/manifest.webmanifest`,
+    manifest: `/kiosk/${boutiqueId}/manifest.webmanifest`,
   };
 }
 
