@@ -17,22 +17,38 @@ function buildStatusText(produit: Produit) {
 }
 
 export default function KioskCarousel({ produits }: Props) {
-  const [index, setIndex] = useState(0);
-  const active = useMemo(() => produits[index], [produits, index]);
+  const [productIndex, setProductIndex] = useState(0);
+  const [photoIndex, setPhotoIndex] = useState(0);
+  const active = useMemo(
+    () => produits[productIndex],
+    [produits, productIndex]
+  );
+  const photos = active?.photos?.length ? active.photos : [];
+  const activePhoto = photos[photoIndex];
 
   useEffect(() => {
-    if (produits.length <= 1) return;
-    const timer = setInterval(() => {
-      setIndex((prev) => (prev + 1) % produits.length);
+    setProductIndex(0);
+    setPhotoIndex(0);
+  }, [produits]);
+
+  useEffect(() => {
+    if (!produits.length) return;
+    const timer = setTimeout(() => {
+      if (photos.length > 1 && photoIndex < photos.length - 1) {
+        setPhotoIndex((prev) => prev + 1);
+        return;
+      }
+      setPhotoIndex(0);
+      setProductIndex((prev) => (prev + 1) % produits.length);
     }, 5000);
-    return () => clearInterval(timer);
-  }, [produits.length]);
+    return () => clearTimeout(timer);
+  }, [produits.length, productIndex, photos.length, photoIndex]);
 
   if (!active) {
     return (
       <div className="kiosk-card">
-        <h2>Aucun produit</h2>
-        <p className="muted">Ajoutez des produits pour cette boutique.</p>
+        <h2>No products yet</h2>
+        <p className="muted">Add products for this shop to start.</p>
       </div>
     );
   }
@@ -41,24 +57,43 @@ export default function KioskCarousel({ produits }: Props) {
 
   return (
     <div className="kiosk-card">
-      <h1>{active.nom}</h1>
-      <p>{active.description}</p>
-      <div className="row">
-        <span className="badge">{active.categorie}</span>
-        <span className="badge">{status}</span>
-        <span className="badge">{active.prix.toFixed(2)} €</span>
+      <div className="kiosk-media">
+        {activePhoto ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            className="kiosk-image"
+            src={activePhoto}
+            alt={active.nom}
+          />
+        ) : (
+          <div className="kiosk-image placeholder">No photo</div>
+        )}
+        {photos.length > 1 ? (
+          <div className="kiosk-dots">
+            {photos.map((_, idx) => (
+              <span
+                key={`${active.id}-dot-${idx}`}
+                className={`dot ${idx === photoIndex ? "active" : ""}`}
+              />
+            ))}
+          </div>
+        ) : null}
       </div>
-      {active.photos?.[0] ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={active.photos[0]}
-          alt={active.nom}
-          style={{ width: "70%", maxWidth: 520, borderRadius: 16 }}
-        />
-      ) : (
-        <div className="card">Aucune photo</div>
-      )}
-      <p className="muted">QR code sur l'etiquette pour reserver.</p>
+      <div className="kiosk-details">
+        <div className="kiosk-header">
+          <h1>{active.nom}</h1>
+          <span className="kiosk-count">
+            {productIndex + 1}/{produits.length}
+          </span>
+        </div>
+        <p className="kiosk-description">{active.description}</p>
+        <div className="row kiosk-badges">
+          <span className="badge">{active.categorie}</span>
+          <span className="badge">{status}</span>
+          <span className="badge">{active.prix.toFixed(2)} €</span>
+        </div>
+        <p className="muted">QR code sur l'etiquette pour reserver.</p>
+      </div>
     </div>
   );
 }

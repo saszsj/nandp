@@ -166,12 +166,11 @@ a {
 
 .kiosk-card {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
   align-items: center;
-  justify-items: center;
-  padding: 24px;
-  text-align: center;
-  gap: 12px;
+  gap: 28px;
+  padding: 32px;
+  text-align: left;
 }
 
 .kiosk-banner {
@@ -180,4 +179,80 @@ a {
   padding: 16px;
   text-align: center;
   border-top: 1px solid #1f2937;
+}
+
+.kiosk-media {
+  position: relative;
+  width: 100%;
+  display: grid;
+  place-items: center;
+  min-height: 320px;
+}
+
+.kiosk-image {
+  width: 100%;
+  max-height: 70vh;
+  object-fit: cover;
+  border-radius: 18px;
+  border: 1px solid #1f2937;
+  background: #0f172a;
+}
+
+.kiosk-image.placeholder {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  height: 60vh;
+}
+
+.kiosk-dots {
+  position: absolute;
+  bottom: 16px;
+  display: flex;
+  gap: 6px;
+  background: rgba(17, 24, 39, 0.7);
+  padding: 6px 10px;
+  border-radius: 999px;
+}
+
+.kiosk-dots .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.kiosk-dots .dot.active {
+  background: white;
+}
+
+.kiosk-details {
+  display: grid;
+  gap: 12px;
+}
+
+.kiosk-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.kiosk-header h1 {
+  font-size: 40px;
+  letter-spacing: -0.02em;
+}
+
+.kiosk-count {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.kiosk-description {
+  font-size: 16px;
+  color: #e2e8f0;
+}
+
+.kiosk-badges {
+  flex-wrap: wrap;
 }
