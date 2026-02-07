@@ -4,22 +4,16 @@ import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
 
-type ServiceAccount = {
-  project_id: string;
-  client_email: string;
-  private_key: string;
-};
-
-function loadServiceAccount(): ServiceAccount {
+function loadServiceAccount() {
   if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
-    return JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON) as ServiceAccount;
+    return JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
   }
   if (process.env.FIREBASE_SERVICE_ACCOUNT_BASE64) {
     const raw = Buffer.from(
       process.env.FIREBASE_SERVICE_ACCOUNT_BASE64,
       "base64"
     ).toString("utf8");
-    return JSON.parse(raw) as ServiceAccount;
+    return JSON.parse(raw);
   }
   throw new Error("Missing Firebase service account env.");
 }
