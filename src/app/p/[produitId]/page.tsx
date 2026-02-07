@@ -28,7 +28,7 @@ export default function PublicProduitPage({ params }: Props) {
     const load = async () => {
       const snap = await getDoc(doc(db, "produits", params.produitId));
       if (snap.exists()) {
-        setProduit({ id: snap.id, ...(snap.data() as Produit) });
+        setProduit({ ...(snap.data() as Produit), id: snap.id });
       }
       setLoading(false);
     };

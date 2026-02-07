@@ -62,14 +62,14 @@ export default function AdminProduitsPage() {
       query(collection(db, "boutiques"), orderBy("nom")),
       (snap) =>
         setBoutiques(
-          snap.docs.map((d) => ({ id: d.id, ...(d.data() as Boutique) }))
+          snap.docs.map((d) => ({ ...(d.data() as Boutique), id: d.id }))
         )
     );
     const unsubProduits = onSnapshot(
       query(collection(db, "produits"), orderBy("createdAt", "desc")),
       (snap) =>
         setProduits(
-          snap.docs.map((d) => ({ id: d.id, ...(d.data() as Produit) }))
+          snap.docs.map((d) => ({ ...(d.data() as Produit), id: d.id }))
         )
     );
     return () => {

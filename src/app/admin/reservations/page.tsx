@@ -22,7 +22,7 @@ export default function AdminReservationsPage() {
     const q = query(collection(db, "reservations"), orderBy("createdAt", "desc"));
     const unsub = onSnapshot(q, (snap) => {
       setReservations(
-        snap.docs.map((d) => ({ id: d.id, ...(d.data() as Reservation) }))
+        snap.docs.map((d) => ({ ...(d.data() as Reservation), id: d.id }))
       );
     });
     return () => unsub();

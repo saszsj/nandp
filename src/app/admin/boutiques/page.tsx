@@ -24,8 +24,8 @@ export default function AdminBoutiquesPage() {
     const unsub = onSnapshot(q, (snap) => {
       setBoutiques(
         snap.docs.map((docSnap) => ({
-          id: docSnap.id,
           ...(docSnap.data() as Boutique),
+          id: docSnap.id,
         }))
       );
     });

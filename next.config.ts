@@ -1,3 +1,4 @@
+import path from "path";
 import type { NextConfig } from "next";
 import withPWAInit from "next-pwa";
 
@@ -8,7 +9,9 @@ const withPWA = withPWAInit({
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  turbopack: {},
+  turbopack: {
+    root: path.resolve(__dirname),
+  },
 };
 
 export default withPWA(nextConfig);

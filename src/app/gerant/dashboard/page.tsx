@@ -67,7 +67,7 @@ export default function GerantDashboardPage() {
     const loadBoutique = async () => {
       const snap = await getDoc(doc(db, "boutiques", profile.boutiqueId || ""));
       if (snap.exists()) {
-        setBoutique({ id: snap.id, ...(snap.data() as Boutique) });
+        setBoutique({ ...(snap.data() as Boutique), id: snap.id });
       }
     };
     loadBoutique();
@@ -82,7 +82,7 @@ export default function GerantDashboardPage() {
     );
     const unsubRes = onSnapshot(qReservations, (snap) => {
       setReservations(
-        snap.docs.map((d) => ({ id: d.id, ...(d.data() as Reservation) }))
+        snap.docs.map((d) => ({ ...(d.data() as Reservation), id: d.id }))
       );
     });
     const qProduits = query(
@@ -91,7 +91,7 @@ export default function GerantDashboardPage() {
     );
     const unsubProd = onSnapshot(qProduits, (snap) => {
       setProduits(
-        snap.docs.map((d) => ({ id: d.id, ...(d.data() as Produit) }))
+        snap.docs.map((d) => ({ ...(d.data() as Produit), id: d.id }))
       );
     });
     return () => {

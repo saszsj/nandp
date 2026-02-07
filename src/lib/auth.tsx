@@ -50,7 +50,7 @@ export function AuthProviderInner({ children }: { children: ReactNode }) {
       try {
         const snap = await getDoc(doc(db, "users", firebaseUser.uid));
         if (snap.exists()) {
-          const nextProfile = { id: snap.id, ...(snap.data() as UserProfile) };
+          const nextProfile = { ...(snap.data() as UserProfile), id: snap.id };
           console.log("[auth] profile loaded", nextProfile);
           setProfile(nextProfile);
         } else {

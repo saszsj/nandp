@@ -22,8 +22,8 @@ export default function KioskPage({ params }: Props) {
     );
     const unsub = onSnapshot(q, (snap) => {
       const items = snap.docs.map((docSnap) => ({
-        id: docSnap.id,
         ...(docSnap.data() as Produit),
+        id: docSnap.id,
       }));
       setProduits(items);
       setLoading(false);
