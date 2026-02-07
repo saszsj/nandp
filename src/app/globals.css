@@ -166,7 +166,8 @@ a {
 
 .kiosk-card {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr auto;
   align-items: center;
   gap: 28px;
   padding: 32px;
@@ -186,16 +187,16 @@ a {
   width: 100%;
   display: grid;
   place-items: center;
-  min-height: 320px;
+  min-height: 60vh;
 }
 
 .kiosk-image {
   width: 100%;
-  max-height: 70vh;
-  object-fit: cover;
+  max-height: 78vh;
+  object-fit: contain;
   border-radius: 18px;
   border: 1px solid #1f2937;
-  background: #0f172a;
+  background: #0b0f1a;
 }
 
 .kiosk-image.placeholder {
@@ -226,9 +227,21 @@ a {
   background: white;
 }
 
-.kiosk-details {
+.kiosk-info-overlay {
+  position: absolute;
+  bottom: 18px;
+  left: 18px;
+  right: auto;
+  max-width: 48%;
   display: grid;
-  gap: 12px;
+  gap: 10px;
+  color: #f8fafc;
+  background: rgba(8, 12, 20, 0.72);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 12px 14px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
 }
 
 .kiosk-header {
@@ -239,20 +252,31 @@ a {
 }
 
 .kiosk-header h1 {
-  font-size: 40px;
+  font-size: 28px;
   letter-spacing: -0.02em;
+  color: #f8fafc;
 }
 
 .kiosk-count {
   font-size: 14px;
-  color: var(--muted);
+  color: rgba(248, 250, 252, 0.6);
 }
 
 .kiosk-description {
-  font-size: 16px;
-  color: #e2e8f0;
+  font-size: 14px;
+  color: rgba(248, 250, 252, 0.85);
 }
 
 .kiosk-badges {
   flex-wrap: wrap;
+}
+
+.kiosk-badges .badge {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #f8fafc;
+}
+
+.kiosk-footer {
+  text-align: center;
 }

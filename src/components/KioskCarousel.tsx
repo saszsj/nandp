@@ -68,6 +68,20 @@ export default function KioskCarousel({ produits }: Props) {
         ) : (
           <div className="kiosk-image placeholder">No photo</div>
         )}
+        <div className="kiosk-info-overlay">
+          <div className="kiosk-header">
+            <h1>{active.nom}</h1>
+            <span className="kiosk-count">
+              {productIndex + 1}/{produits.length}
+            </span>
+          </div>
+          <p className="kiosk-description">{active.description}</p>
+          <div className="row kiosk-badges">
+            <span className="badge">{active.categorie}</span>
+            <span className="badge">{status}</span>
+            <span className="badge">{active.prix.toFixed(2)} €</span>
+          </div>
+        </div>
         {photos.length > 1 ? (
           <div className="kiosk-dots">
             {photos.map((_, idx) => (
@@ -79,21 +93,9 @@ export default function KioskCarousel({ produits }: Props) {
           </div>
         ) : null}
       </div>
-      <div className="kiosk-details">
-        <div className="kiosk-header">
-          <h1>{active.nom}</h1>
-          <span className="kiosk-count">
-            {productIndex + 1}/{produits.length}
-          </span>
-        </div>
-        <p className="kiosk-description">{active.description}</p>
-        <div className="row kiosk-badges">
-          <span className="badge">{active.categorie}</span>
-          <span className="badge">{status}</span>
-          <span className="badge">{active.prix.toFixed(2)} €</span>
-        </div>
-        <p className="muted">QR code sur l'etiquette pour reserver.</p>
-      </div>
+      <p className="muted kiosk-footer">
+        QR code sur l'etiquette pour reserver.
+      </p>
     </div>
   );
 }

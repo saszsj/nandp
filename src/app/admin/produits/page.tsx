@@ -48,6 +48,14 @@ export default function AdminProduitsPage() {
     joursAvantArrivage: 0,
     boutiqueIds: [] as string[],
   });
+  const photoList = useMemo(
+    () =>
+      form.photos
+        .split(",")
+        .map((p) => p.trim())
+        .filter(Boolean),
+    [form.photos]
+  );
 
   useEffect(() => {
     const unsubBoutiques = onSnapshot(
@@ -209,6 +217,39 @@ export default function AdminProduitsPage() {
                 value={form.photos}
                 onChange={(e) => setForm({ ...form, photos: e.target.value })}
               />
+              {photoList.length ? (
+                <div className="row" style={{ flexWrap: "wrap" }}>
+                  {photoList.map((url) => (
+                    <div key={url} className="card stack" style={{ width: 140 }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={url}
+                        alt="Apercu"
+                        style={{
+                          width: "100%",
+                          height: 140,
+                          objectFit: "cover",
+                          borderRadius: 10,
+                        }}
+                      />
+                      <button
+                        className="btn ghost"
+                        type="button"
+                        onClick={() =>
+                          setForm((prev) => ({
+                            ...prev,
+                            photos: photoList
+                              .filter((item) => item !== url)
+                              .join(", "),
+                          }))
+                        }
+                      >
+                        Supprimer
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
               <label className="label">Upload images (Vercel Blob)</label>
               <input
                 className="input"
