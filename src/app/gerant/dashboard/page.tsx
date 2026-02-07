@@ -40,6 +40,8 @@ export default function GerantDashboardPage() {
   const [produits, setProduits] = useState<Produit[]>([]);
   const [status, setStatus] = useState<string | null>(null);
   const [aiVariants, setAiVariants] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [form, setForm] = useState({
     nom: "",
     description: "",
@@ -157,6 +159,37 @@ export default function GerantDashboardPage() {
     setAiVariants([]);
   };
 
+  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    if (!files.length) return;
+    setUploading(true);
+    setUploadError(null);
+    try {
+      const urls: string[] = [];
+      for (const file of files) {
+        const body = new FormData();
+        body.append("file", file);
+        body.append("filename", file.name);
+        const response = await fetch("/api/blob", { method: "POST", body });
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error || "Upload failed.");
+        }
+        const data = await response.json();
+        urls.push(data.url);
+      }
+      setForm((prev) => ({
+        ...prev,
+        photos: [prev.photos, ...urls].filter(Boolean).join(", "),
+      }));
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Upload failed.");
+    } finally {
+      setUploading(false);
+      event.target.value = "";
+    }
+  };
+
   const handleMockAI = () => {
     setAiVariants([
       "https://placehold.co/600x800?text=AI+1",
@@ -210,6 +243,17 @@ export default function GerantDashboardPage() {
                 value={form.photos}
                 onChange={(e) => setForm({ ...form, photos: e.target.value })}
               />
+              <label className="label">Upload images (Vercel Blob)</label>
+              <input
+                className="input"
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleUpload}
+                disabled={uploading}
+              />
+              {uploading ? <p className="muted">Uploading...</p> : null}
+              {uploadError ? <div className="alert danger">{uploadError}</div> : null}
               <button
                 className="btn secondary"
                 type="button"

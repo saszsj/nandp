@@ -1,23 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Produit } from "@/lib/types";
 import KioskCarousel from "@/components/KioskCarousel";
 
 type Props = {
-  params: { boutiqueId: string };
+  params: Promise<{ boutiqueId: string }>;
 };
 
 export default function KioskPage({ params }: Props) {
+  const { boutiqueId } = use(params);
   const [produits, setProduits] = useState<Produit[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const q = query(
       collection(db, "produits"),
-      where("boutiqueIds", "array-contains", params.boutiqueId)
+      where("boutiqueIds", "array-contains", boutiqueId)
     );
     const unsub = onSnapshot(q, (snap) => {
       const items = snap.docs.map((docSnap) => ({
@@ -28,7 +29,7 @@ export default function KioskPage({ params }: Props) {
       setLoading(false);
     });
     return () => unsub();
-  }, [params.boutiqueId]);
+  }, [boutiqueId]);
 
   return (
     <div className="kiosk">
