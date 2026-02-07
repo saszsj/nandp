@@ -4,10 +4,13 @@ import { useEffect, useMemo, useState } from "react";
 import {
   addDoc,
   collection,
+  deleteDoc,
   onSnapshot,
   orderBy,
   query,
   serverTimestamp,
+  updateDoc,
+  doc,
 } from "firebase/firestore";
 import RoleGuard from "@/components/RoleGuard";
 import AdminNav from "@/components/AdminNav";
@@ -36,6 +39,8 @@ export default function AdminProduitsPage() {
   const [aiVariants, setAiVariants] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState({
     nom: "",
     description: "",
@@ -83,6 +88,29 @@ export default function AdminProduitsPage() {
     [boutiques, form.boutiqueIds]
   );
 
+  const formatStockParTaille = (stock: Record<string, number>) =>
+    Object.entries(stock)
+      .map(([taille, qty]) => `${taille}=${qty}`)
+      .join(",");
+
+  const resetForm = () => {
+    setForm({
+      nom: "",
+      description: "",
+      photos: "",
+      prix: 0,
+      categorie: "promo",
+      stockTotal: 0,
+      stockParTaille: "",
+      status: "disponible",
+      joursAvantArrivage: 0,
+      boutiqueIds: [],
+    });
+    setAiVariants([]);
+    setEditingId(null);
+    setFormOpen(false);
+  };
+
   const handleCreate = async (event: React.FormEvent) => {
     event.preventDefault();
     setStatus(null);
@@ -91,7 +119,7 @@ export default function AdminProduitsPage() {
       .split(",")
       .map((p) => p.trim())
       .filter(Boolean);
-    await addDoc(collection(db, "produits"), {
+    const payload = {
       nom: form.nom,
       description: form.description,
       photos: photos.length ? photos : aiVariants,
@@ -114,22 +142,17 @@ export default function AdminProduitsPage() {
         status: aiVariants.length > 0 ? "done" : "idle",
         variants: aiVariants,
       },
-      createdAt: serverTimestamp(),
-    });
-    setStatus("Produit ajoute.");
-    setForm({
-      nom: "",
-      description: "",
-      photos: "",
-      prix: 0,
-      categorie: "promo",
-      stockTotal: 0,
-      stockParTaille: "",
-      status: "disponible",
-      joursAvantArrivage: 0,
-      boutiqueIds: [],
-    });
-    setAiVariants([]);
+      ...(editingId ? {} : { createdAt: serverTimestamp() }),
+    };
+
+    if (editingId) {
+      await updateDoc(doc(db, "produits", editingId), payload);
+      setStatus("Produit mis a jour.");
+    } else {
+      await addDoc(collection(db, "produits"), payload);
+      setStatus("Produit ajoute.");
+    }
+    resetForm();
   };
 
   const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -183,13 +206,51 @@ export default function AdminProduitsPage() {
     });
   };
 
+  const handleEdit = (produit: Produit) => {
+    setEditingId(produit.id);
+    setForm({
+      nom: produit.nom,
+      description: produit.description,
+      photos: (produit.photos || []).join(", "),
+      prix: produit.prix,
+      categorie: produit.categorie,
+      stockTotal: produit.stockTotal,
+      stockParTaille: formatStockParTaille(produit.stockParTaille || {}),
+      status: produit.status,
+      joursAvantArrivage: produit.joursAvantArrivage || 0,
+      boutiqueIds: produit.boutiqueIds || [],
+    });
+    setAiVariants(produit.ai?.variants || []);
+    setStatus(null);
+    setFormOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    setStatus(null);
+    await deleteDoc(doc(db, "produits", id));
+    if (editingId === id) {
+      resetForm();
+    }
+    setStatus("Produit supprime.");
+  };
+
   return (
     <RoleGuard allow={["admin"]} redirectTo="/admin/login">
       <main className="container stack">
         <AdminNav />
         <div className="card stack">
-          <h1>Produits</h1>
-          <form className="stack" onSubmit={handleCreate}>
+          <div className="row space-between">
+            <h1>Produits</h1>
+            <button
+              className="btn"
+              type="button"
+              onClick={() => setFormOpen((prev) => !prev)}
+            >
+              {formOpen ? "Fermer" : "Ajouter un produit"}
+            </button>
+          </div>
+          {formOpen ? (
+            <form className="stack" onSubmit={handleCreate}>
             <div className="stack">
               <label className="label">Nom</label>
               <input
@@ -379,24 +440,85 @@ export default function AdminProduitsPage() {
                 ) : null}
               </div>
             </div>
-            <button className="btn" type="submit">
-              Ajouter
-            </button>
-            {status ? <p className="muted">{status}</p> : null}
-          </form>
+              <div className="row">
+                <button className="btn" type="submit">
+                  {editingId ? "Mettre a jour" : "Ajouter"}
+                </button>
+                {editingId ? (
+                  <>
+                    <button
+                      className="btn secondary"
+                      type="button"
+                      onClick={() => handleDelete(editingId)}
+                    >
+                      Supprimer
+                    </button>
+                    <button
+                      className="btn ghost"
+                      type="button"
+                      onClick={resetForm}
+                    >
+                      Annuler
+                    </button>
+                  </>
+                ) : null}
+              </div>
+              {status ? <p className="muted">{status}</p> : null}
+            </form>
+          ) : null}
         </div>
 
         <div className="card stack">
           <h2>Liste</h2>
           <div className="stack">
             {produits.map((p) => (
-              <div key={p.id} className="row space-between">
-                <div>
-                  <div>{p.nom}</div>
+              <button
+                key={p.id}
+                type="button"
+                className="card"
+                onClick={() => handleEdit(p)}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "120px 1fr auto",
+                  gap: 16,
+                  alignItems: "center",
+                  textAlign: "left",
+                  cursor: "pointer",
+                }}
+              >
+                <div
+                  style={{
+                    width: 120,
+                    height: 120,
+                    borderRadius: 12,
+                    background: "#f3f4f6",
+                    overflow: "hidden",
+                    display: "grid",
+                    placeItems: "center",
+                  }}
+                >
+                  {p.photos?.[0] ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={p.photos[0]}
+                      alt={p.nom}
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    />
+                  ) : (
+                    <span className="muted">No photo</span>
+                  )}
+                </div>
+                <div className="stack" style={{ gap: 6 }}>
+                  <div style={{ fontWeight: 600 }}>{p.nom}</div>
                   <div className="muted">{p.categorie}</div>
+                  <div className="muted">
+                    {p.boutiques?.length
+                      ? p.boutiques.map((b) => b.nom).join(", ")
+                      : "Aucune boutique"}
+                  </div>
                 </div>
                 <span className="badge">{p.prix.toFixed(2)} €</span>
-              </div>
+              </button>
             ))}
             {!produits.length ? (
               <p className="muted">Aucun produit pour le moment.</p>

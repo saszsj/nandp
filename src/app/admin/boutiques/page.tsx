@@ -4,10 +4,13 @@ import { useEffect, useState } from "react";
 import {
   addDoc,
   collection,
+  deleteDoc,
   onSnapshot,
   orderBy,
   query,
   serverTimestamp,
+  updateDoc,
+  doc,
 } from "firebase/firestore";
 import RoleGuard from "@/components/RoleGuard";
 import AdminNav from "@/components/AdminNav";
@@ -18,6 +21,7 @@ export default function AdminBoutiquesPage() {
   const [boutiques, setBoutiques] = useState<Boutique[]>([]);
   const [form, setForm] = useState({ nom: "", ville: "", actif: true });
   const [status, setStatus] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     const q = query(collection(db, "boutiques"), orderBy("nom"));
@@ -35,14 +39,42 @@ export default function AdminBoutiquesPage() {
   const handleCreate = async (event: React.FormEvent) => {
     event.preventDefault();
     setStatus(null);
-    await addDoc(collection(db, "boutiques"), {
+    const payload = {
       nom: form.nom,
       ville: form.ville,
       actif: form.actif,
-      createdAt: serverTimestamp(),
-    });
+      ...(editingId ? {} : { createdAt: serverTimestamp() }),
+    };
+
+    if (editingId) {
+      await updateDoc(doc(db, "boutiques", editingId), payload);
+      setStatus("Boutique mise a jour.");
+    } else {
+      await addDoc(collection(db, "boutiques"), payload);
+      setStatus("Boutique ajoutee.");
+    }
     setForm({ nom: "", ville: "", actif: true });
-    setStatus("Boutique ajoutee.");
+    setEditingId(null);
+  };
+
+  const handleEdit = (boutique: Boutique) => {
+    setEditingId(boutique.id);
+    setForm({
+      nom: boutique.nom,
+      ville: boutique.ville,
+      actif: boutique.actif,
+    });
+    setStatus(null);
+  };
+
+  const handleDelete = async (id: string) => {
+    setStatus(null);
+    await deleteDoc(doc(db, "boutiques", id));
+    if (editingId === id) {
+      setForm({ nom: "", ville: "", actif: true });
+      setEditingId(null);
+    }
+    setStatus("Boutique supprimee.");
   };
 
   return (
@@ -78,9 +110,23 @@ export default function AdminBoutiquesPage() {
               />
               <span>Active</span>
             </label>
-            <button className="btn" type="submit">
-              Ajouter
-            </button>
+            <div className="row">
+              <button className="btn" type="submit">
+                {editingId ? "Mettre a jour" : "Ajouter"}
+              </button>
+              {editingId ? (
+                <button
+                  className="btn ghost"
+                  type="button"
+                  onClick={() => {
+                    setForm({ nom: "", ville: "", actif: true });
+                    setEditingId(null);
+                  }}
+                >
+                  Annuler
+                </button>
+              ) : null}
+            </div>
             {status ? <p className="muted">{status}</p> : null}
           </form>
         </div>
@@ -94,9 +140,25 @@ export default function AdminBoutiquesPage() {
                   <div>{b.nom}</div>
                   <div className="muted">{b.ville}</div>
                 </div>
-                <span className={`badge ${b.actif ? "success" : "danger"}`}>
-                  {b.actif ? "Active" : "Inactive"}
-                </span>
+                <div className="row">
+                  <span className={`badge ${b.actif ? "success" : "danger"}`}>
+                    {b.actif ? "Active" : "Inactive"}
+                  </span>
+                  <button
+                    className="btn ghost"
+                    type="button"
+                    onClick={() => handleEdit(b)}
+                  >
+                    Editer
+                  </button>
+                  <button
+                    className="btn secondary"
+                    type="button"
+                    onClick={() => handleDelete(b.id)}
+                  >
+                    Supprimer
+                  </button>
+                </div>
               </div>
             ))}
             {!boutiques.length ? (
